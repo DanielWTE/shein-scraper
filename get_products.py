@@ -161,6 +161,6 @@ for url in urls:
         with open('product_urls.json', 'w') as outfile:
             json.dump(product_urls, outfile)
 
-    driver.quit()
-    if db_mode:
-        client.close()
+driver.quit()
+if db_mode:
+    client.close()

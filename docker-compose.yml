@@ -1,0 +1,17 @@
+# docker-compose.yml
+version: '3.1'
+
+services:
+  scraper:
+    build: .
+    volumes:
+      - .:/app
+    depends_on:
+      - db
+    environment:
+      - MONGO_HOST=db
+
+  db:
+    image: mongo:latest
+    volumes:
+      - ./data/db:/data/db

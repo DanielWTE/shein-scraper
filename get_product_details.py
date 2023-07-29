@@ -14,6 +14,7 @@ from pymongo import MongoClient
 from datetime import datetime
 import json
 import time
+import os
 
 from functions.getProxy import *
 from functions.getUserAgent import *
@@ -22,7 +23,8 @@ from functions.getUserAgent import *
 
 debug = False
 RETRIES = 3
-client = MongoClient('mongodb://localhost:27017/')
+mongo_host = os.environ.get('MONGO_HOST', 'localhost')
+client = MongoClient(f'mongodb://{mongo_host}:27017/')
 db = client['shein']
 url_collection = db['product_urls']
 product_collection = db['products']

@@ -10,6 +10,7 @@ import re
 from pymongo import MongoClient
 from datetime import datetime
 import json
+import os
 
 from functions.getProxy import *
 from functions.getUserAgent import *
@@ -23,7 +24,8 @@ with open('shein_categories.txt', 'r') as file: # Read URLs from file
     urls = file.readlines()
 
 if db_mode:
-    client = MongoClient('mongodb://localhost:27017/')
+    mongo_host = os.environ.get('MONGO_HOST', 'localhost')
+    client = MongoClient(f'mongodb://{mongo_host}:27017/')
     db = client['shein']
     collection = db['product_urls']
 

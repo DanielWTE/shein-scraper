@@ -38,16 +38,19 @@ try:
     product_collection.create_index('title', text_index=True)
 except Exception as e:
     print('Title index already exists')
+    pass
 
 try:
     product_collection.create_index('url', unique=True)
 except Exception as e:
     print('URL index already exists')
+    pass
 
 try:
     product_collection.create_index('product_id', unique=True)
 except Exception as e:
     print('Product ID index already exists')
+    pass
 
 #prox_options = {
 #    'proxy': {
@@ -136,7 +139,6 @@ for url in pending_urls:
 
                 page_reviews = driver.find_elements(By.CLASS_NAME, 'common-reviews__list-item')
 
-                review_data = []
                 for review in page_reviews:
                     review_info = {}
 
@@ -150,12 +152,16 @@ for url in pending_urls:
                     except Exception as e:
                         review_info['likes'] = 0
 
+                    review_info['product_id'] = product_id
+                    review_info['timestamp'] = datetime.now()
+
                     try:
                         images = review.find_elements(By.CLASS_NAME, 'j-review-img')
                         image_array = []
 
                         for image in images:
                             try:
+                                ActionChains(driver).move_to_element(image).perform()
                                 wait_for_review_image_load(driver, image)
                                 image_url = image.get_attribute('src')
                                 final_url = image_url.replace('_thumbnail_x460', '')
@@ -165,14 +171,10 @@ for url in pending_urls:
 
                         review_info['images'] = image_array
                     except Exception as e:
-                        review_info['images'] = []
+                        pass
 
-                    review_info['product_id'] = product_id
-                    review_info['timestamp'] = datetime.now()
-
-                    review_data.append(review_info)
-
-                product_reviews_collection.insert_many(review_data)
+                    if review_info['review_id'] != 0 and review_info['likes'] != 0 and len(review_info['images']) > 0:
+                        product_reviews_collection.insert_one(review_info)
 
                 if i < image_pages:
                     try:

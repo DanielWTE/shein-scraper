@@ -21,7 +21,7 @@ from functions.getUserAgent import *
 
 #proxy = getProxy()
 
-debug = False
+limit_to_3_max_review_pages = True
 RETRIES = 3
 mongo_host = os.environ.get('MONGO_HOST', 'localhost')
 client = MongoClient(f'mongodb://{mongo_host}:27017/')
@@ -30,13 +30,24 @@ url_collection = db['product_urls']
 product_collection = db['products']
 product_reviews_collection = db['product_reviews']
 
+if limit_to_3_max_review_pages:
+    print('Limiting to 3 max review pages per product ACTIVATED')
+
 # Setup Index
 try:
     product_collection.create_index('title', text_index=True)
+except Exception as e:
+    print('Title index already exists')
+
+try:
     product_collection.create_index('url', unique=True)
+except Exception as e:
+    print('URL index already exists')
+
+try:
     product_collection.create_index('product_id', unique=True)
 except Exception as e:
-    print('Index already exists')
+    print('Product ID index already exists')
 
 #prox_options = {
 #    'proxy': {
@@ -46,8 +57,8 @@ except Exception as e:
 
 options = Options()
 options.add_argument('--headless')
-options.add_argument('--no-sandbox')
-options.add_argument('--disable-dev-shm-usage')
+#options.add_argument('--no-sandbox')
+#options.add_argument('--disable-dev-shm-usage')
 options.add_argument('--user-agent=' + GET_UA())
 options.add_argument('--incognito')
 options.add_argument('--ignore-certificate-errors')
@@ -58,6 +69,9 @@ driver = webdriver.Chrome(service=Service(chrome_drvier_binary), options=options
 
 pending_urls = url_collection.find({"status": "pending"}).sort("timestamp", 1)
 
+def wait_for_review_image_load(driver, image_element, timeout=15):
+    WebDriverWait(driver, timeout).until_not(lambda d: 'sheinsz.ltwebstatic.com' in image_element.get_attribute('src'))
+
 for url in pending_urls:
     url = url['url']
     print('Processing ' + url)
@@ -67,10 +81,10 @@ for url in pending_urls:
         try:
             url_collection.update_one({'url': url}, {'$set': {'status': 'processing'}})
             driver.get(url)
-            WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.XPATH, '/html/body/div[1]/div[2]/div/div/div[1]/div/div/div[2]/div/i')))
+            #WebDriverWait(driver, 15).until(EC.presence_of_element_located((By.XPATH, '/html/body/div[1]/div[1]/div/div[1]/div/div[2]/div[2]/div/div[3]/div[1]/div/div/button[2]/div')))
             break
         except Exception as e:
-            print('Error: ' + str(e))
+            print('Scraping error: ' + str(e))
             retries += 1
             print(f'Retrying ({retries} of {RETRIES})')
 
@@ -113,6 +127,8 @@ for url in pending_urls:
             review_data = []
             driver.find_element(By.CLASS_NAME, 'j-expose__review-image-tab-target').click() # Reviews with Pictures
             image_pages = int(image_count / 3) + 1 # 3 images per page
+            if limit_to_3_max_review_pages:
+                image_pages = min(3, image_pages)
             for i in range(1, image_pages + 1): # Loop through all image pages
                 print(f'Processing image page {i} of {image_pages}')  # Progress update
 
@@ -122,13 +138,17 @@ for url in pending_urls:
 
                 review_data = []
                 for review in page_reviews:
-                    time.sleep(5)
                     review_info = {}
 
                     try:
-                        review_info['review_id'] = review.get_attribute('data-comment-id')
+                        review_info['review_id'] = int(review.get_attribute('data-comment-id'))
                     except Exception as e:
-                        review_info['review_id'] = '0'
+                        review_info['review_id'] = 0
+
+                    try:
+                        review_info['likes'] = int(re.sub("\D", "", review.find_element(By.CLASS_NAME, 'like-num').text))
+                    except Exception as e:
+                        review_info['likes'] = 0
 
                     try:
                         images = review.find_elements(By.CLASS_NAME, 'j-review-img')
@@ -136,6 +156,7 @@ for url in pending_urls:
 
                         for image in images:
                             try:
+                                wait_for_review_image_load(driver, image)
                                 image_url = image.get_attribute('src')
                                 final_url = image_url.replace('_thumbnail_x460', '')
                                 image_array.append('https:' + final_url)
@@ -154,11 +175,18 @@ for url in pending_urls:
                 product_reviews_collection.insert_many(review_data)
 
                 if i < image_pages:
-                    next_page_button = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.CLASS_NAME, 'sui-pagination__next')))
-                    next_page_button.click()
+                    try:
+                        next_page_button = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.CLASS_NAME, 'sui-pagination__next')))
+                        next_page_button.click()
+                    except Exception as e:
+                        print('Error clicking next page button: ' + str(e))
+                        popover_btn = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.CLASS_NAME, 'sui-popover__content')))
+                        popover_btn.click()
+                        pass
 
                 time.sleep(2)
-
+        else:
+            url_collection.update_one({'url': url}, {'$set': {'status': 'no_reviews'}})
 
     except Exception as e:
         print('Error: ' + str(e))
@@ -166,7 +194,7 @@ for url in pending_urls:
         continue
     
     
-
-
+    url_collection.update_one({'url': url}, {'$set': {'status': 'complete'}})
+    print('Done processing ' + url)
 driver.quit()
 client.close()

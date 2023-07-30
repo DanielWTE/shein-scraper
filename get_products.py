@@ -3,6 +3,7 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.common.by import By
+from selenium.webdriver import ActionChains
 from lxml import etree
 from bs4 import BeautifulSoup
 from urllib.parse import urlparse
@@ -124,8 +125,9 @@ for url in urls:
             max_pages = min(1, max_pages)  # Limit to 1 page in debug mode
         print(f'Found {max_pages} pages')
     except Exception as e:
-        print('Error: ' + str(e))
-        exit()
+        print('Error getting pagination: ' + str(e))
+        max_pages = 1  # If no pagination, assume 1 page of product
+        pass
 
     # Initialize array for product urls
     product_urls = []
@@ -134,6 +136,7 @@ for url in urls:
         try:
             print(f'Processing page {i} of {max_pages}')  # Progress update
             driver.get(url + '?page=' + str(i))
+
             product_elements = driver.find_elements(By.CLASS_NAME, 'product-list__item')
             for product in product_elements:
                 href = product.find_element(By.TAG_NAME, 'a').get_attribute('href')

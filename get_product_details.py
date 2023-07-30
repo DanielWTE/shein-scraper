@@ -15,13 +15,14 @@ from datetime import datetime
 import json
 import time
 import os
+import math
 
 from functions.getProxy import *
 from functions.getUserAgent import *
 
 #proxy = getProxy()
 
-limit_to_3_max_review_pages = True
+limit_to_3_max_review_pages = False
 RETRIES = 3
 mongo_host = os.environ.get('MONGO_HOST', 'localhost')
 client = MongoClient(f'mongodb://{mongo_host}:27017/')
@@ -59,7 +60,7 @@ except Exception as e:
 #}
 
 options = Options()
-options.add_argument('--headless')
+#options.add_argument('--headless')
 #options.add_argument('--no-sandbox')
 #options.add_argument('--disable-dev-shm-usage')
 options.add_argument('--user-agent=' + GET_UA())
@@ -99,13 +100,13 @@ for url in pending_urls:
     try:
         try: # Close the popup
             button_popup = driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div/div/div[1]/div/div/div[2]/div/i').click()
-            driver.implicitly_wait(10)
+            driver.implicitly_wait(5)
             ActionChains(driver).move_to_element(button_popup).click(button_popup).perform()
         except Exception as e:
             pass
         try: # Accept cookies
             button_cookies = driver.find_element(By.ID, 'onetrust-accept-btn-handler').click()
-            driver.implicitly_wait(10)
+            driver.implicitly_wait(5)
             ActionChains(driver).move_to_element(button_cookies).click(button_cookies).perform()
         except Exception as e:
             pass
@@ -127,41 +128,71 @@ for url in pending_urls:
 
         print(f'Found {image_count} reviews with images')
         if image_count > 0:
-            review_data = []
-            driver.find_element(By.CLASS_NAME, 'j-expose__review-image-tab-target').click() # Reviews with Pictures
-            image_pages = int(image_count / 3) + 1 # 3 images per page
+            try:
+                # move to image button
+                ActionChains(driver).move_to_element(driver.find_element(By.CLASS_NAME, 'j-expose__review-image-tab-target')).perform()
+                image_tab_btn = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.CLASS_NAME, 'j-expose__review-image-tab-target'))) # Review with images tab
+                ActionChains(driver).move_to_element(image_tab_btn).click(image_tab_btn).perform()
+            except Exception as e:
+                print('Error clicking image tab: ' + str(e))
+                pass
+            print('Clicked image tab button')
+            image_pages = math.ceil(int(image_count) / 3) # 3 images per page
+            print(f'Found {image_pages} pages of reviews with images')
             if limit_to_3_max_review_pages:
                 image_pages = min(3, image_pages)
             for i in range(1, image_pages + 1): # Loop through all image pages
                 print(f'Processing image page {i} of {image_pages}')  # Progress update
 
-                WebDriverWait(driver, 10).until(EC.presence_of_all_elements_located((By.CLASS_NAME, 'common-reviews__list-item')))
-
-                page_reviews = driver.find_elements(By.CLASS_NAME, 'common-reviews__list-item')
+                page_reviews = WebDriverWait(driver, 10).until(EC.presence_of_all_elements_located((By.CLASS_NAME, 'common-reviews__list-item')))
 
                 for review in page_reviews:
+                    print('=== Review ===')
                     review_info = {}
+                    try:
+                        WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.CLASS_NAME, 'common-reviews__list-item')))
+                        ActionChains(driver).move_to_element(review).perform() # Hover over review to load it
+                    except Exception as e:
+                        print('Error hovering over review')
+                        continue
 
                     try:
                         review_info['review_id'] = int(review.get_attribute('data-comment-id'))
                     except Exception as e:
                         review_info['review_id'] = 0
+                        continue
+                    print('Review ID: ' + str(review_info['review_id']))
 
                     try:
                         review_info['likes'] = int(re.sub("\D", "", review.find_element(By.CLASS_NAME, 'like-num').text))
                     except Exception as e:
                         review_info['likes'] = 0
+                        continue
+                    print('Likes: ' + str(review_info['likes']))
 
                     review_info['product_id'] = product_id
+                    print('Product ID: ' + str(review_info['product_id']))
                     review_info['timestamp'] = datetime.now()
+                    print('Timestamp: ' + str(review_info['timestamp']))
 
                     try:
-                        images = review.find_elements(By.CLASS_NAME, 'j-review-img')
+                        print('Getting images for review ' + str(review_info['review_id']))
+                        start_time = time.time()
+                        while True:
+                            images = review.find_elements(By.CLASS_NAME, 'j-review-img')
+                            if images or time.time() - start_time > 10:
+                                break
+                            time.sleep(0.5)
+
+                        if not images:
+                            print('No images found after 10 seconds')
+                        else:
+                            print('Found ' + str(len(images)) + ' images')
                         image_array = []
 
                         for image in images:
                             try:
-                                ActionChains(driver).move_to_element(image).perform()
+                                ActionChains(driver).move_to_element(image).perform() # Hover over image to load it
                                 wait_for_review_image_load(driver, image)
                                 image_url = image.get_attribute('src')
                                 final_url = image_url.replace('_thumbnail_x460', '')
@@ -169,12 +200,31 @@ for url in pending_urls:
                             except Exception as e:
                                 pass
 
+
                         review_info['images'] = image_array
                     except Exception as e:
-                        pass
+                        # Problem explanation:
+                        # So when the first review has no images, the script tries to get the images of this review
+                        # due the error "stale not found" the script will click on the image tab again
+                        # and then it will try to get the new reviews from the right tab
+                        print('There was an error getting the images / mostly because there are no images')
+                        # click again on image tab
+                        image_tab_btn = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.CLASS_NAME, 'j-expose__review-image-tab-target'))) # Review with images tab
+                        ActionChains(driver).move_to_element(image_tab_btn).click(image_tab_btn).perform()
+                        time.sleep(2)
+                        continue
 
                     if review_info['review_id'] != 0 and review_info['likes'] != 0 and len(review_info['images']) > 0:
+                        print('Inserting review into MongoDB')
                         product_reviews_collection.insert_one(review_info)
+                        print('=====')
+                    elif review_info['review_likes'] == 0:
+                        print('Skipping all reviews because there are no likes anymore / which mostly means that the reviews doesnt show a human anymore')
+                        print('=====')
+                        pass
+                    else:
+                        print('Skipping review because it is missing data')
+                        print('=====')
 
                 if i < image_pages:
                     try:

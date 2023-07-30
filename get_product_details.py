@@ -154,20 +154,21 @@ for url in pending_urls:
                         ActionChains(driver).move_to_element(review).perform() # Hover over review to load it
                     except Exception as e:
                         print('Error hovering over review')
-                        continue
+                        pass
 
                     try:
                         review_info['review_id'] = int(review.get_attribute('data-comment-id'))
                     except Exception as e:
                         review_info['review_id'] = 0
-                        continue
+
                     print('Review ID: ' + str(review_info['review_id']))
 
                     try:
                         review_info['likes'] = int(re.sub("\D", "", review.find_element(By.CLASS_NAME, 'like-num').text))
                     except Exception as e:
                         review_info['likes'] = 0
-                        continue
+                        pass
+
                     print('Likes: ' + str(review_info['likes']))
 
                     review_info['product_id'] = product_id

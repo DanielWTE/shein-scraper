@@ -118,31 +118,36 @@ for url in pending_urls:
 
         # get product images for every color
         product_images = []
+        skip_product_images = False
 
         try:
             colors = driver.find_elements(By.CLASS_NAME, 'product-intro__color-radio')
         except Exception as e:
-            colors = driver.find_elements(By.CLASS_NAME, 'product-intro__color-block')
-        product_colors = []
-        for color in colors:
-            selected_color = color.get_attribute('aria-label')
-            print('Select Color: %s' % selected_color)
-            product_colors.append(selected_color)
-
-            ActionChains(driver).move_to_element(color).click(color).perform()
-            color.click()
-            time.sleep(5) # Wait for product iamges to appear
             try:
-                product_cropped_images = driver.find_elements(By.CLASS_NAME, 'product-intro__thumbs-item')
-                for image in product_cropped_images:
-                    image_url = image.find_element(By.TAG_NAME, 'img').get_attribute('src')
-                    final_url = image_url.replace('_thumbnail_220x293', '')
-                    print('Adding product image with color values %s' % final_url)
-                    product_images.append([selected_color, final_url])
+                colors = driver.find_elements(By.CLASS_NAME, 'product-intro__color-block')
             except Exception as e:
-                print('There was an error getting the product images for ' + product_id)
-                print('Product Image Error: ' + str(e))
-                pass     
+                skip_product_images = True
+        product_colors = []
+        if skip_product_images:
+            for color in colors:
+                selected_color = color.get_attribute('aria-label')
+                print('Select Color: %s' % selected_color)
+                product_colors.append(selected_color)
+
+                ActionChains(driver).move_to_element(color).click(color).perform()
+                color.click()
+                time.sleep(5) # Wait for product iamges to appear
+                try:
+                    product_cropped_images = driver.find_elements(By.CLASS_NAME, 'product-intro__thumbs-item')
+                    for image in product_cropped_images:
+                        image_url = image.find_element(By.TAG_NAME, 'img').get_attribute('src')
+                        final_url = image_url.replace('_thumbnail_220x293', '')
+                        print('Adding product image with color values %s' % final_url)
+                        product_images.append([selected_color, final_url])
+                except Exception as e:
+                    print('There was an error getting the product images for ' + product_id)
+                    print('Product Image Error: ' + str(e))
+                    pass     
 
         product_data = {
             'product_id': product_id,

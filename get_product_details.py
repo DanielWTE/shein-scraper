@@ -60,7 +60,7 @@ except Exception as e:
 #}
 
 options = Options()
-options.add_argument('--headless')
+#options.add_argument('--headless')
 #options.add_argument('--no-sandbox')
 #options.add_argument('--disable-dev-shm-usage')
 options.add_argument('--user-agent=' + GET_UA())
@@ -98,6 +98,7 @@ for url in pending_urls:
         continue
     
     try:
+        print('Processing ' + url)
         try: # Close the popup
             button_popup = driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div/div/div[1]/div/div/div[2]/div/i').click()
             driver.implicitly_wait(5)
@@ -115,10 +116,45 @@ for url in pending_urls:
         product_id = driver.find_element(By.CLASS_NAME, 'product-intro__head-sku').text.replace('SKU: ', '')
         title = driver.find_element(By.CLASS_NAME, 'product-intro__head-name').text
 
-        product_data = { 'product_id': product_id, 'title': title, 'url': url, 'last_update': datetime.now(), 'timestamp': datetime.now() }
-        #single_product_data.append(product_data)
+        # get product images for every color
+        product_images = []
+
+        colors = driver.find_elements(By.CLASS_NAME, 'product-intro__color-radio')
+        product_colors = []
+        for color in colors:
+            selected_color = color.get_attribute('aria-label')
+            print('Select Color: %s' % selected_color)
+            product_colors.append(selected_color)
+
+            ActionChains(driver).move_to_element(color).click(color).perform()
+            color.click()
+            time.sleep(5) # Wait for product iamges to appear
+            try:
+                product_cropped_images = driver.find_elements(By.CLASS_NAME, 'product-intro__thumbs-item')
+                for image in product_cropped_images:
+                    image_url = image.find_element(By.TAG_NAME, 'img').get_attribute('src')
+                    final_url = image_url.replace('_thumbnail_220x293', '')
+                    print('Adding product image with color values %s' % final_url)
+                    product_images.append([selected_color, final_url])
+            except Exception as e:
+                print('There was an error getting the product images for ' + product_id)
+                print('Product Image Error: ' + str(e))
+                pass     
+
+        product_data = {
+            'product_id': product_id,
+            'title': title,
+            'url': url,
+            'colors': product_colors,
+            'images': product_images,
+            'last_update': datetime.now(),
+            'timestamp': datetime.now()
+        }
+
+        #Insert the product data into MongoDB
         product_collection.insert_one(product_data)
 
+        # Get the reviews
         try:
             image_count = driver.find_element(By.CLASS_NAME, 'j-expose__review-image-tab-target').text
             image_count = re.sub("\D", "", image_count)
@@ -242,12 +278,13 @@ for url in pending_urls:
             url_collection.update_one({'url': url}, {'$set': {'status': 'no_reviews'}})
 
     except Exception as e:
-        print('Error: ' + str(e))
+        print('General Error: ' + str(e))
         url_collection.update_one({'url': url}, {'$set': {'status': 'failed'}})
         continue
     
     
     url_collection.update_one({'url': url}, {'$set': {'status': 'complete'}})
     print('Done processing ' + url)
+print('Done processing all URLs')
 driver.quit()
 client.close()

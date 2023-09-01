@@ -16,10 +16,10 @@ from functions.getUserAgent import *
 mongo_host = os.environ.get('MONGO_HOST', 'localhost')
 client = MongoClient(f'mongodb://{mongo_host}:27017/')
 db = client['shein']
-product_reviews_collection = db['product_reviews']
+products_collection = db['products']
 
 max_concurrent_downloads = 1
-image_dir = "images/reviews/"
+image_dir = "images/products/"
 if not os.path.exists(image_dir):
     os.makedirs(image_dir)
 
@@ -40,11 +40,11 @@ def download_image(url, download_path):
 already_downloaded = []
 futures = []
 
-reviews = product_reviews_collection.find({}).sort("likes", -1)
+products = products_collection.find({})
 
 with concurrent.futures.ThreadPoolExecutor(max_workers=max_concurrent_downloads) as executor:
-    for review in reviews:
-        for image_url in review['images']:
+    for product in products:
+        for image_url in product['images'][1]:
             if image_url not in already_downloaded:
                 print(f"Preparing to download {image_url}")
                 try:

@@ -119,7 +119,10 @@ for url in pending_urls:
         # get product images for every color
         product_images = []
 
-        colors = driver.find_elements(By.CLASS_NAME, 'product-intro__color-radio')
+        try:
+            colors = driver.find_elements(By.CLASS_NAME, 'product-intro__color-radio')
+        except Exception as e:
+            colors = driver.find_elements(By.CLASS_NAME, 'product-intro__color-block')
         product_colors = []
         for color in colors:
             selected_color = color.get_attribute('aria-label')

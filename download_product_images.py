@@ -40,25 +40,27 @@ def download_image(url, download_path):
 already_downloaded = []
 futures = []
 
-products = products_collection.find({})
+products = products_collection.find({}).sort('timestamp', 1)
 
 with concurrent.futures.ThreadPoolExecutor(max_workers=max_concurrent_downloads) as executor:
     for product in products:
-        for image_url in product['images'][1]:
-            if image_url not in already_downloaded:
-                print(f"Preparing to download {image_url}")
-                try:
-                    response = requests.get(image_url)
-                    response.raise_for_status()
-                    print(f"Access to {image_url} is not blocked")
-                except (requests.RequestException, IOError) as e:
-                    print(f"Access to {image_url} is blocked: {e}")
-                    continue
+        if product['images'] != []:
+            for images in product['images']:
+                image_url = images[1]
+                if image_url not in already_downloaded:
+                    print(f"Preparing to download {image_url}")
+                    try:
+                        response = requests.get(image_url)
+                        response.raise_for_status()
+                        print(f"Access to {image_url} is not blocked")
+                    except (requests.RequestException, IOError) as e:
+                        print(f"Access to {image_url} is blocked: {e}")
+                        continue
 
-                download_path = os.path.join(image_dir, image_url.split("/")[-1])
-                futures.append(executor.submit(download_image, image_url, download_path))
-                already_downloaded.append(image_url)
-                time.sleep(0.1)
+                    download_path = os.path.join(image_dir, image_url.split("/")[-1])
+                    futures.append(executor.submit(download_image, image_url, download_path))
+                    already_downloaded.append(image_url)
+                    time.sleep(0.1)
 
     for future in concurrent.futures.as_completed(futures):
         url = future.result()

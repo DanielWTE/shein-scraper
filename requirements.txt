@@ -4,7 +4,7 @@ beautifulsoup4==4.11.1
 certifi==2022.6.15
 h11==0.13.0
 idna==3.3
-lxml==4.9.1
+lxml==5.0.0
 outcome==1.2.0
 PySocks==1.7.1
 selenium==4.4.3

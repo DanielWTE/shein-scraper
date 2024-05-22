@@ -1,11 +1,7 @@
 from seleniumwire import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
-from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.common.by import By
-from selenium.webdriver import ActionChains
-from lxml import etree
-from bs4 import BeautifulSoup
 from urllib.parse import urlparse
 import re
 from pymongo import MongoClient
@@ -18,7 +14,7 @@ from functions.getUserAgent import *
 
 #proxy = getProxy()
 domain = 'shein.com' # For checking if the URL is from the same domain
-debug = False # Set to True to limit to 1 page
+debug = True # Set to True to limit to 1 page
 db_mode = True # True = MongoDB, False = JSON
 
 with open('shein_categories.txt', 'r') as file: # Read URLs from file

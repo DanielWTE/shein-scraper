@@ -6,9 +6,6 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver import ActionChains
 from selenium.webdriver.common.by import By
-from lxml import etree
-from bs4 import BeautifulSoup
-from urllib.parse import urlparse
 import re
 from pymongo import MongoClient
 from datetime import datetime
@@ -60,7 +57,7 @@ except Exception as e:
 #}
 
 options = Options()
-options.add_argument('--headless')
+#options.add_argument('--headless')
 #options.add_argument('--no-sandbox')
 #options.add_argument('--disable-dev-shm-usage')
 options.add_argument('--user-agent=' + GET_UA())
@@ -100,7 +97,7 @@ for url in pending_urls:
     try:
         print('Processing ' + url)
         try: # Close the popup
-            button_popup = driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div/div/div[1]/div/div/div[2]/div/i').click()
+            button_popup = driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div/div[1]/div/div/div[2]/div[2]/span').click()
             driver.implicitly_wait(5)
             ActionChains(driver).move_to_element(button_popup).click(button_popup).perform()
         except Exception as e:
@@ -116,12 +113,15 @@ for url in pending_urls:
         product_id = driver.find_element(By.CLASS_NAME, 'product-intro__head-sku').text.replace('SKU: ', '')
         title = driver.find_element(By.CLASS_NAME, 'product-intro__head-name').text
 
+        print('Product ID: ' + product_id)
+        print('Title: ' + title)
+
         # get product images for every color
         product_images = []
         get_product_images = True
 
         try:
-            colors = driver.find_elements(By.CLASS_NAME, 'product-intro__color-radio')
+            colors = driver.find_elements(By.CLASS_NAME, 'goods-color__radio_radio')
         except Exception as e:
             try:
                 colors = driver.find_elements(By.CLASS_NAME, 'product-intro__color-block')

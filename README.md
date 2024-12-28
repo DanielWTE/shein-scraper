@@ -23,7 +23,7 @@ The project is organized into several modules:
 * **utils/**: Helper utilities
   * **browser_config.py**: Browser configuration and anti-detection measures
   * **popup_handler.py**: Handles website popups and dialogs
-  * **captcha_handler.py**: Manages captcha challenges
+  * **captcha_handler.py**: Manages captcha challenges (not implemented)
   * **user_agents.py**: Collection of user agent strings
   * **validator.py**: URL validation utilities
 
@@ -69,7 +69,6 @@ docker-compose up --build
 This will:
 * Set up the Python environment
 * Mount the local directory to /app in the container
-* Create a volume for MongoDB data persistence
 
 ## Usage
 

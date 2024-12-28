@@ -16,9 +16,6 @@ RUN playwright install-deps chromium
 
 COPY . .
 
-COPY docker-entrypoint.sh /docker-entrypoint.sh
-RUN chmod +x /docker-entrypoint.sh
-
 ENV PYTHONUNBUFFERED=1
 
 CMD ["python", "main.py"]

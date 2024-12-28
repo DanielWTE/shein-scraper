@@ -1,3 +1,7 @@
-__pycache__
-data
-images/*
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.env
+output/
+.DS_Store

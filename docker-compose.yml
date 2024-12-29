@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  scraper:
+    build: .
+    volumes:
+      - ./output:/app/output
+    environment:
+      - PYTHONUNBUFFERED=1
+    stdin_open: true
+    tty: true
+    init: true
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 1G

@@ -1,7 +1,6 @@
 import click
 from typing import Callable
 from dataclasses import dataclass
-import os
 from scraper.product_urls import collect_product_urls
 from scraper.product_details import extract_product_details
 from scraper.reviews import collect_reviews

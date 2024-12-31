@@ -1,15 +1,6 @@
 from playwright.sync_api import Page, TimeoutError
 import os
 from datetime import datetime
-
-def handle_challenge(page: Page):
-    try:
-        challenge_frame = page.frame_locator('iframe[title="geetest"]')
-        if challenge_frame:
-            # handle captcha
-            raise Exception("Captcha encountered")
-    except TimeoutError:
-        pass
     
 def setup_page_handlers(page: Page):
     try:

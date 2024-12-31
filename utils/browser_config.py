@@ -38,7 +38,7 @@ def get_browser_context():
     platform_info = get_platform()
     
     launch_options = {
-        'headless': True,
+        'headless': False,
         'args': [
             '--disable-application-cache',
             '--disable-gpu',

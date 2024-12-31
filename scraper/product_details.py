@@ -27,6 +27,8 @@ def process_image_url(image_url: str) -> str:
     base_url = image_url.split('_thumbnail_')[0]
     if base_url.startswith('//'):
         base_url = 'https:' + base_url
+    if not any(base_url.endswith(ext) for ext in ('.jpg', '.png')):
+        base_url += '.jpg'
     return base_url
 
 @with_captcha_check

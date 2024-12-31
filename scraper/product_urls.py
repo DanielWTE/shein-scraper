@@ -24,6 +24,7 @@ def collect_product_urls():
         handle_popups(page)
         
         page.goto(category_url)
+        handle_popups(page)
         page.mouse.wheel(0, 1500)
         
         current_domain = '/'.join(page.url.split('/')[:3]) + '/'
@@ -39,7 +40,7 @@ def collect_product_urls():
         product_urls = []
         
         for page_num in range(1, total_pages + 1):
-            time.sleep(5)
+            time.sleep(3)
             if page_num > 1:
                 page.locator('.sui-pagination__next').click()
                 page.reload()

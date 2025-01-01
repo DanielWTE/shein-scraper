@@ -66,8 +66,13 @@ def get_browser_context():
     
     viewport_sizes = [
         {'width': 1920, 'height': 1080},
+        {'width': 1280, 'height': 800},
+        {'width': 1440, 'height': 900},
         {'width': 1366, 'height': 768},
-        {'width': 1536, 'height': 864}
+        {'width': 1536, 'height': 864},
+        {'width': 1600, 'height': 900},
+        {'width': 1680, 'height': 1050},
+        {'width': 1920, 'height': 1200},
     ]
     
     chosen_viewport = choice(viewport_sizes)

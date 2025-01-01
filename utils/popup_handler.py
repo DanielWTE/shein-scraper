@@ -2,7 +2,7 @@ import time
 from playwright.sync_api import Page, TimeoutError
 
 def handle_popups(page: Page):
-    print('\n[INFO] Handling popups...')
+    print('[INFO] Handling popups...')
     
     def try_click(selector_info):
         selector, timeout = selector_info

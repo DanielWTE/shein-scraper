@@ -3,26 +3,29 @@ import time
 import json
 import os
 from utils.browser_config import get_browser_context
-from utils.popup_handler import handle_popups
 from utils.page_handler import setup_page_handlers
 from utils.captcha_monitor import with_captcha_check, monitor_for_captcha, handle_captcha_interaction, CaptchaDetected
+from utils.popup_handler import handle_popups
 
 @with_captcha_check
 def navigate_to_page(page, url, delay=3):
     """Navigate to a URL with captcha checking"""
     page.goto(url)
-    handle_popups(page)
     time.sleep(delay)
 
 @with_captcha_check
 def click_next_page(page):
-    """Click the next page button with captcha checking"""
     try:
-        next_button = page.locator('.sui-pagination__next')
-        if next_button.is_visible(timeout=5000):
-            next_button.click(timeout=5000)
-            print("[INFO] Navigating to next page...")
-            return True
+        page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+        time.sleep(2)
+        
+        page.wait_for_selector('.sui-pagination__next')
+        page.click('.sui-pagination__next')
+        time.sleep(3)
+        
+        current_url = page.url
+        return "page=" in current_url
+        
     except Exception as e:
         click.secho(f"\nError navigating to next page: {str(e)}", fg="yellow")
         return False
@@ -62,8 +65,10 @@ def collect_product_urls():
         
         # Initial navigation
         navigate_to_page(page, initial_url)
+        handle_popups(page)
         navigate_to_page(page, category_url)
-        page.mouse.wheel(0, 1500)
+        page.mouse.wheel(0, 3000)
+        time.sleep(1)
         
         current_domain = '/'.join(page.url.split('/')[:3]) + '/'
         
@@ -103,9 +108,6 @@ def collect_product_urls():
                         if not click_next_page(page):
                             click.secho("\nFailed to navigate to next page. Stopping scraper.", fg="red")
                             break
-                        print("[INFO] Waiting for page to load...")
-                        page.mouse.wheel(0, 1500)
-                        time.sleep(3)
                         
                 except CaptchaDetected:
                     # Captcha was detected but not resolved

@@ -21,7 +21,7 @@ def click_next_page(page):
         next_button = page.locator('.sui-pagination__next')
         if next_button.is_visible(timeout=5000):
             next_button.click(timeout=5000)
-            time.sleep(2)
+            print("[INFO] Navigating to next page...")
             return True
     except Exception as e:
         click.secho(f"\nError navigating to next page: {str(e)}", fg="yellow")
@@ -84,6 +84,7 @@ def collect_product_urls():
         
         with click.progressbar(range(1, total_pages + 1), label='Scraping pages') as page_numbers:
             for page_num in page_numbers:
+                print(f"\nScraping page {page_num} of {total_pages}...")
                 try:
                     # Scrape URLs from current page
                     page_urls = scrape_category_page(page, current_domain)
@@ -102,7 +103,9 @@ def collect_product_urls():
                         if not click_next_page(page):
                             click.secho("\nFailed to navigate to next page. Stopping scraper.", fg="red")
                             break
-                        page.wait_for_load_state('networkidle')
+                        print("[INFO] Waiting for page to load...")
+                        page.mouse.wheel(0, 1500)
+                        time.sleep(3)
                         
                 except CaptchaDetected:
                     # Captcha was detected but not resolved

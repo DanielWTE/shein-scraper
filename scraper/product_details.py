@@ -5,7 +5,7 @@ import os
 import glob
 from typing import List, Dict
 from utils.browser_config import get_browser_context
-from utils.popup_handler import handle_popups
+from utils.page_handler import setup_page_handlers
 from utils.validator import validate_url
 from utils.captcha_monitor import with_captcha_check, monitor_for_captcha, handle_captcha_interaction, CaptchaDetected
 
@@ -35,7 +35,6 @@ def process_image_url(image_url: str) -> str:
 def navigate_to_product(page, url: str, delay: int = 2):
     """Navigate to a product page with captcha checking"""
     page.goto(url)
-    handle_popups(page)
     time.sleep(delay)
 
 @with_captcha_check
@@ -146,6 +145,7 @@ def extract_product_details():
     
     try:
         page = context.new_page()
+        setup_page_handlers(page)
         
         # Initial navigation
         navigate_to_product(page, initial_url)
